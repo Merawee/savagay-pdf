@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Savagay PDF</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-screen workbench. Tool bar + property strip on top, pages stacked on a scrolling desk below. */
+:root{
+  --desk:#e5e8ee; --panel:#fbfcfe; --ink:#1a2130; --muted:#586274; --line:#d2d8e2;
+  --accent:#2b50c8; --accent-ink:#ffffff; --accent-soft:#e1e7f9; --danger:#b3302f;
+  --shadow:0 1px 2px rgba(20,30,50,.08),0 8px 26px rgba(20,30,50,.10);
+  --f-ui:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  /* Paper is always white, so on-page selection marks use fixed colors */
+  --sel:#2b50c8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#101319; --panel:#1a1f28; --ink:#e4e8ef; --muted:#97a1b2; --line:#2b3240;
+    --accent:#88a2ff; --accent-ink:#0c1122; --accent-soft:#222c4b; --danger:#ff8a85;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.5); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#101319; --panel:#1a1f28; --ink:#e4e8ef; --muted:#97a1b2; --line:#2b3240;
+  --accent:#88a2ff; --accent-ink:#0c1122; --accent-soft:#222c4b; --danger:#ff8a85;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.5); color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--desk);color:var(--ink);font-family:var(--f-ui);display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Top bar */
+.bar{background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.bar-in{display:flex;align-items:center;gap:10px;padding-block:8px;overflow-x:auto;scrollbar-width:thin}
+.brand{display:flex;align-items:center;gap:7px;font-weight:700;font-size:17px;letter-spacing:-.015em;white-space:nowrap;margin-right:2px}
+.brand svg{width:20px;height:20px;color:var(--accent)}
+.brand small{font-family:var(--f-num);font-size:10.5px;font-weight:500;color:var(--accent);letter-spacing:.08em;border:1px solid currentColor;border-radius:4px;padding:2px 4px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 13.5px/1 var(--f-ui);cursor:pointer;white-space:nowrap;flex:none}
+.btn:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.btn:disabled{opacity:.45;cursor:default}
+.btn svg{width:18px;height:18px;flex:none}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.icon{width:34px;padding:0;justify-content:center}
+.tools{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--desk);flex:none}
+.tool{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:500 13px/1 var(--f-ui);cursor:pointer;white-space:nowrap}
+.tool svg{width:18px;height:18px;flex:none}
+.tool:hover{color:var(--ink)}
+.tool[aria-pressed="true"]{background:var(--panel);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.spacer{flex:1 1 0;min-width:4px}
+.grp{display:flex;align-items:center;gap:4px;flex:none}
+.zoomval{font-family:var(--f-num);font-size:12px;font-variant-numeric:tabular-nums;min-width:52px;height:34px;border:0;background:none;color:var(--ink);cursor:pointer;border-radius:6px}
+.zoomval:hover{background:var(--desk)}
+
+/* Property strip */
+.props{background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.props-in{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;min-height:46px;padding-block:6px}
+.pgroup{display:flex;align-items:center;gap:8px}
+.plabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.swatches{display:flex;gap:6px;align-items:center}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+input[type="color"]{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;padding:1px;background:var(--panel);cursor:pointer}
+input[type="range"]{accent-color:var(--accent);width:110px}
+.num{font-family:var(--f-num);font-size:12px;font-variant-numeric:tabular-nums;min-width:3.5ch}
+.mk{width:32px;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0}
+.mk svg{width:18px;height:18px}
+.mk[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.btn.danger{color:var(--danger);height:30px}
+.hint{margin:0 0 0 auto;color:var(--muted);font-size:13px}
+
+/* Desk */
+#desk{flex:1;overflow:auto;position:relative;min-height:0}
+.desk-in{display:flex;flex-direction:column;align-items:center;gap:26px;padding-block:20px 72px;min-width:min-content}
+.docline{display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--muted)}
+.docline b{color:var(--ink);font-weight:600}
+.sample-note{background:var(--accent-soft);border-radius:10px;padding:10px 12px 10px 14px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;max-width:620px;font-size:13.5px;line-height:1.45}
+.sample-note p{margin:0;flex:1 1 260px}
+.page-block{display:flex;flex-direction:column;gap:8px}
+.page-head{display:flex;gap:10px;align-items:baseline;font-size:12px;color:var(--muted)}
+.page-head .pnum{color:var(--ink);font-weight:600;font-size:12.5px}
+.page-head .pdim{font-family:var(--f-num);font-size:11px}
+.lnk{margin-left:auto;border:0;background:none;color:var(--muted);font:500 12px var(--f-ui);cursor:pointer;padding:2px 4px;border-radius:4px}
+.lnk:hover{color:var(--danger)}
+.sheet{position:relative;background:#fff;box-shadow:var(--shadow);overflow:hidden}
+.sheet canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.gone{display:none;align-items:center;justify-content:center;gap:10px;border:1.5px dashed var(--line);border-radius:10px;padding:16px;color:var(--muted);font-size:13px;max-width:100%}
+.gone button{color:var(--accent)}
+.is-deleted .sheet{display:none}
+.is-deleted .gone{display:flex}
+.is-deleted .lnk{display:none}
+
+/* Annotation layer (unscaled PDF points, scaled with transform) */
+.layer{position:absolute;left:0;top:0;transform-origin:0 0;touch-action:none}
+body[data-tool="select"] .layer{touch-action:pan-x pan-y}
+body[data-tool="text"] .layer{cursor:text}
+body[data-tool="mark"] .layer,body[data-tool="pen"] .layer,body[data-tool="highlight"] .layer,body[data-tool="whiteout"] .layer{cursor:crosshair}
+body[data-tool="place"] .layer{cursor:copy}
+.fields,.anns{position:absolute;inset:0;pointer-events:none}
+.fld,.ann{pointer-events:auto}
+/* Fillable PDF fields */
+.fld{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:2px;background:rgba(43,80,200,.08);color:#000;-webkit-text-fill-color:#000;opacity:1;font-family:Arial,Helvetica,"Liberation Sans",sans-serif;padding:0 3px;line-height:1.15;outline:none;resize:none;box-shadow:inset 0 -1px 0 rgba(43,80,200,.4);touch-action:manipulation}
+.fld:hover{background:rgba(43,80,200,.14)}
+.fld:focus{background:rgba(43,80,200,.05);box-shadow:0 0 0 1.5px var(--sel)}
+textarea.fld{padding:2px 3px;overflow:auto}
+select.fld{padding:0 2px;cursor:pointer}
+.fld-check,.fld-radio{appearance:none;-webkit-appearance:none;cursor:pointer;display:block;box-shadow:inset 0 0 0 1px rgba(43,80,200,.45)}
+.fld-radio{border-radius:50%}
+.fld-check:checked{background:rgba(43,80,200,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12.5 9.5 18 20 6' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/82% no-repeat}
+.fld-radio:checked{background:rgba(43,80,200,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6' fill='%23000'/%3E%3C/svg%3E") center/100% no-repeat}
+.fld:disabled{background:transparent;box-shadow:none;cursor:default}
+body[data-tool="text"] .fld-text{box-shadow:0 0 0 1.5px rgba(43,80,200,.6);background:rgba(43,80,200,.12)}
+body[data-tool="pen"] .fld,body[data-tool="highlight"] .fld,body[data-tool="whiteout"] .fld,body[data-tool="place"] .fld{pointer-events:none}
+.ann{position:absolute;box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none}
+body[data-tool="select"] .ann{cursor:move}
+.ann.sel{outline:1.5px solid var(--sel);outline-offset:3px}
+.ann-text{-webkit-text-fill-color:currentColor;opacity:1;white-space:pre;line-height:1.2;font-family:Arial,Helvetica,"Liberation Sans",sans-serif;min-width:4px;min-height:1.2em}
+.ann-text.editing{user-select:text;-webkit-user-select:text;cursor:text;outline:1.5px dashed var(--sel);outline-offset:3px;background:rgba(43,80,200,.06)}
+.ann-image img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
+.ann-rect.k-highlight{mix-blend-mode:multiply;opacity:.38}
+.ann-rect.k-whiteout{background:#fff}
+.ann-mark svg{width:100%;height:100%;display:block;overflow:visible}
+.ann.ann-path{overflow:visible;pointer-events:none}
+.ann-path .hit{pointer-events:stroke}
+.handle{position:absolute;right:-10px;bottom:-10px;width:12px;height:12px;background:#fff;border:1.5px solid var(--sel);border-radius:3px;cursor:nwse-resize}
+.handle::before{content:"";position:absolute;inset:-9px}
+
+/* Signature modal */
+.modal{position:fixed;inset:0;background:rgba(10,14,24,.5);display:grid;place-items:center;z-index:20;padding:16px}
+.modal-card{background:var(--panel);color:var(--ink);border-radius:14px;box-shadow:var(--shadow);width:min(620px,100%);padding:20px;display:flex;flex-direction:column;gap:12px}
+.modal-card h2{margin:0;font-size:18px;letter-spacing:-.01em;text-wrap:balance}
+.modal-card p{margin:0;color:var(--muted);font-size:13.5px}
+.sig-pad{position:relative;background:#fff;border-radius:10px;border:1px solid var(--line);height:200px}
+.sig-pad canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.sig-line{position:absolute;left:24px;right:24px;bottom:46px;border-bottom:1px dashed #b8bfcc;pointer-events:none}
+.sig-x{position:absolute;left:24px;bottom:52px;color:#9aa3b2;font:600 16px var(--f-ui);pointer-events:none}
+.modal-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Toast + drop overlay */
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:9px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:30;max-width:calc(100% - 32px)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#drop{position:fixed;inset:0;z-index:25;background:color-mix(in srgb,var(--accent) 16%,transparent);border:3px dashed var(--accent);display:grid;place-items:center;font-size:20px;font-weight:600;color:var(--ink);pointer-events:none}
+#drop span{background:var(--panel);padding:14px 22px;border-radius:12px;box-shadow:var(--shadow)}
+
+#desk{touch-action:pan-x pan-y}
+
+/* Mobile field editor: big input above the keyboard */
+.fsheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);z-index:22;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px;border-radius:14px 14px 0 0}
+.fs-head{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
+#fsLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fsInput{font:16px/1.4 var(--f-ui);padding:10px 12px;border:1.5px solid var(--accent);border-radius:10px;background:#fff;color:#000;-webkit-text-fill-color:#000;caret-color:#000;resize:none;width:100%;box-sizing:border-box}
+.fs-actions{display:flex;gap:8px}
+.fs-actions .btn{height:44px}
+.fld.fld-active{box-shadow:0 0 0 2px var(--sel);background:rgba(43,80,200,.18)}
+
+@media (min-width:721px) and (max-width:1100px){ .tool span{display:none} .tool{padding:0 9px} .btn .lbl{display:none} .btn:not(.icon){padding:0 10px} #btnDownload .lbl{display:inline} }
+
+/* Phone: tools move to a thumb-reach bar at the bottom */
+@media (max-width:720px){
+  .bar-in{gap:6px;padding-block:6px}
+  .brand{font-size:16px}
+  .brand small{display:none}
+  .btn{height:40px}
+  .btn.icon,#btnUndo,#btnRedo,#btnOpen{width:40px;padding:0;justify-content:center}
+  .btn .lbl{display:none}
+  #btnDownload .lbl{display:inline}
+  .grp.zoom{display:none}
+  .tools{position:fixed;left:0;right:0;bottom:0;z-index:15;border-radius:0;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06);gap:0;overflow-x:auto;scrollbar-width:none;
+    padding:4px max(6px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .tool{flex:1 0 auto;flex-direction:column;justify-content:center;gap:3px;height:54px;min-width:52px;padding:0 4px;font-size:10.5px}
+  .tool svg{width:22px;height:22px}
+  .tool[aria-pressed="true"]{background:var(--accent-soft);box-shadow:none}
+  .props-in{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:16px;min-height:52px}
+  .hint{display:none}
+  .sw{width:30px;height:30px}
+  input[type="color"]{width:32px;height:32px}
+  input[type="range"]{width:120px}
+  .mk{width:42px;height:40px}
+  .btn.danger{height:38px}
+  .desk-in{padding-block:14px 130px;gap:18px}
+  #toast{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  .handle{width:18px;height:18px;right:-14px;bottom:-14px}
+  .modal{align-items:end;padding:0}
+  .modal-card{border-radius:16px 16px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .modal-actions .btn{height:44px}
+}
+@media (max-width:380px){ #btnDownload .lbl{display:none} #btnDownload{width:40px;padding:0;justify-content:center} }
+@media (prefers-reduced-motion:reduce){ #toast{transition:none} }
+</style>
+
+<header class="bar">
+  <div class="bar-in gutter">
+    <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5 18 10l-6 11.5L6 10z"/><path d="M12 10v5.5"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg>Savagay <small>PDF</small></div>
+    <button class="btn" id="btnOpen" data-icon="open"><span class="lbl">Abrir PDF</span></button>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+    <div class="tools" role="toolbar" aria-label="Herramientas">
+      <button class="tool" data-tool="select" data-icon="select" title="Seleccionar y mover (V)"><span>Mover</span></button>
+      <button class="tool" data-tool="text" data-icon="text" title="Texto (T)"><span>Texto</span></button>
+      <button class="tool" data-tool="mark" data-icon="mark" title="Marcar casilla (C)"><span>Casilla</span></button>
+      <button class="tool" data-tool="pen" data-icon="pen" title="Dibujar (D)"><span>Dibujar</span></button>
+      <button class="tool" data-tool="highlight" data-icon="highlight" title="Resaltar (R)"><span>Resaltar</span></button>
+      <button class="tool" data-tool="whiteout" data-icon="whiteout" title="Tapar con blanco (B)"><span>Tapar</span></button>
+      <button class="tool" data-tool="sign" data-icon="sign" title="Firma"><span>Firma</span></button>
+      <button class="tool" data-tool="image" data-icon="image" title="Imagen"><span>Imagen</span></button>
+    </div>
+    <input type="file" id="imgInput" accept="image/*" hidden>
+    <span class="spacer"></span>
+    <div class="grp">
+      <button class="btn" id="btnUndo" data-icon="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><span class="lbl">Deshacer</span></button>
+      <button class="btn" id="btnRedo" data-icon="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><span class="lbl">Rehacer</span></button>
+    </div>
+    <div class="grp zoom">
+      <button class="btn icon" id="btnZoomOut" data-icon="minus" title="Alejar" aria-label="Alejar"></button>
+      <button class="zoomval" id="zoomVal" title="Ajustar al ancho">100%</button>
+      <button class="btn icon" id="btnZoomIn" data-icon="plus" title="Acercar" aria-label="Acercar"></button>
+    </div>
+    <button class="btn primary" id="btnDownload" data-icon="download"><span class="lbl">Descargar PDF</span></button>
+  </div>
+</header>
+
+<div class="props">
+  <div class="props-in gutter">
+    <div class="pgroup" id="pgColor">
+      <span class="plabel">Color</span>
+      <div class="swatches" id="swatches"></div>
+      <input type="color" id="colorCustom" value="#000000" aria-label="Otro color">
+    </div>
+    <div class="pgroup" id="pgSize">
+      <label class="plabel" for="sizeRange" id="sizeLabel">Tamaño</label>
+      <input type="range" id="sizeRange" min="6" max="72" step="1" value="14">
+      <span class="num" id="sizeVal">14</span>
+    </div>
+    <div class="pgroup" id="pgMark">
+      <span class="plabel">Marca</span>
+      <button class="mk" data-mark="check" aria-label="Visto bueno"></button>
+      <button class="mk" data-mark="x" aria-label="Equis"></button>
+      <button class="mk" data-mark="dot" aria-label="Punto"></button>
+    </div>
+    <div class="pgroup" id="pgSel">
+      <button class="btn danger" id="btnDelete" data-icon="trash"><span class="lbl">Eliminar</span></button>
+    </div>
+    <p class="hint" id="hint"></p>
+  </div>
+</div>
+
+<main id="desk">
+  <div class="desk-in gutter">
+    <div class="sample-note" id="sampleNote" hidden>
+      <p>Esto es un <b>formulario rellenable de ejemplo</b>. Escribe en sus casillas, marca opciones o firma. Abre tu propio PDF o arrástralo aquí para empezar.</p>
+      <button class="btn primary" id="btnOpen2" data-icon="open">Abrir mi PDF</button>
+    </div>
+    <div class="docline"><b id="docName">Cargando…</b><span id="docPages"></span></div>
+    <div id="pages" style="display:flex;flex-direction:column;align-items:center;gap:26px"></div>
+  </div>
+</main>
+
+<div class="modal" id="sigModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="sigTitle">
+    <h2 id="sigTitle">Dibuja tu firma</h2>
+    <p>Usa el ratón o el dedo. Después toca la página donde quieras colocarla.</p>
+    <div class="sig-pad"><canvas id="sigCanvas"></canvas><span class="sig-x">×</span><div class="sig-line"></div></div>
+    <div class="modal-actions">
+      <span class="plabel">Tinta</span>
+      <div class="swatches" id="sigInk"></div>
+      <span class="spacer"></span>
+      <button class="btn" id="sigReuse" hidden>Usar la anterior</button>
+      <button class="btn" id="sigClear">Borrar</button>
+      <button class="btn" id="sigCancel">Cancelar</button>
+      <button class="btn primary" id="sigOk">Colocar firma</button>
+    </div>
+  </div>
+</div>
+
+<div class="fsheet" id="fieldSheet" hidden>
+  <div class="fs-head"><span class="plabel" id="fsLabel">Campo</span><span class="num" id="fsCount"></span></div>
+  <textarea id="fsInput" rows="1" autocomplete="off" spellcheck="false" aria-labelledby="fsLabel"></textarea>
+  <div class="fs-actions">
+    <button class="btn" id="fsPrev">Anterior</button>
+    <button class="btn" id="fsNext">Siguiente</button>
+    <span class="spacer"></span>
+    <button class="btn primary" id="fsDone">Listo</button>
+  </div>
+</div>
+
+<div id="drop" hidden><span>Suelta el PDF para abrirlo</span></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+if (!pdfjsLib || !window.PDFLib) {
+  $('#docName').textContent = 'No se pudieron cargar las librerías de PDF. Recarga la página.';
+  return;
+}
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const { PDFDocument, StandardFonts, rgb, degrees, LineCapStyle, BlendMode, PDFTextField, PDFCheckBox, PDFRadioGroup, PDFDropdown, PDFOptionList, PDFName, PDFBool } = PDFLib;
+
+/* ---------- Icons ---------- */
+const ICONS = {
+  open: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  select: '<path d="M5 3.5 18.5 11l-6 1.6-2.3 6z"/>',
+  text: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
+  mark: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12.5 2.8 2.8L16.5 9"/>',
+  pen: '<path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="m13.5 7 3 3"/>',
+  highlight: '<path d="m9 15-4 4h5l1.5-1.5"/><path d="m8 12.5 7-7 3.5 3.5-7 7z"/><path d="M14 20h6"/>',
+  whiteout: '<rect x="3.5" y="7" width="17" height="10" rx="1.5"/><path d="M7 12h10" stroke-dasharray="2 2.2"/>',
+  sign: '<path d="M3 17c2.5-4 4.5-9 6-9s-.5 7 1.5 7 2.5-4 4-4 1 3 2.5 3 2-1 4-2"/><path d="M3 21h18"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="m4 16 5-5 4 4 2.5-2.5L20 17"/><circle cx="15.5" cy="9" r="1.3"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+  minus: '<path d="M6 12h12"/>',
+  plus: '<path d="M12 6v12M6 12h12"/>',
+  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
+  trash: '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>'
+};
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+$$('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon)));
+
+const MARKS = {
+  check: c => `<path d="M4 12.5 9.5 18 20 6" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`,
+  x: c => `<path d="M5 5 19 19M19 5 5 19" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/>`,
+  dot: c => `<circle cx="12" cy="12" r="6" fill="${c}"/>`
+};
+const markSvg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true">${MARKS[k](c)}</svg>`;
+$$('.mk').forEach(b => b.innerHTML = markSvg(b.dataset.mark, 'currentColor'));
+
+/* ---------- State ---------- */
+const SWATCHES = [['#000000','Negro'],['#1f4fd1','Azul'],['#d12f2f','Rojo'],['#1a8a4a','Verde'],['#ffd400','Amarillo'],['#ff6fae','Rosa']];
+const SIZE_CFG = {
+  text: { min: 6, max: 72, step: 1, label: 'Letra', unit: 'pt' },
+  mark: { min: 8, max: 60, step: 1, label: 'Tamaño', unit: 'pt' },
+  pen:  { min: 1, max: 12, step: 0.5, label: 'Grosor', unit: 'pt' }
+};
+const HINTS = {
+  select: 'Arrastra un elemento para moverlo. Toca dos veces un texto para editarlo.',
+  text: 'Toca la página donde quieras escribir.',
+  mark: 'Toca una casilla para marcarla. Toca una marca para quitarla.',
+  pen: 'Arrastra sobre la página para dibujar.',
+  highlight: 'Arrastra sobre el texto para resaltarlo.',
+  whiteout: 'Arrastra para tapar contenido con un recuadro blanco.',
+  place: 'Toca la página donde quieras colocarla. Esc para cancelar.'
+};
+const TEXT_BASELINE = 0.94; // baseline offset from line top, in em, for Arial at line-height 1.2
+
+const S = {
+  bytes: null, name: '', doc: null, pages: [], annots: [], isSample: false,
+  fields: {}, fieldMeta: {}, hasFields: false,
+  tool: 'select', zoom: 1, sel: null, editing: null, editNew: false,
+  history: [], future: [], pending: null, drag: null, loadToken: 0, sliding: false,
+  colors: { text: '#000000', mark: '#1f4fd1', pen: '#1f4fd1', highlight: '#ffd400' },
+  sizes: { text: 14, mark: 18, pen: 2.5 }, markKind: 'check', lastSig: null
+};
+const coarse = matchMedia('(pointer: coarse)');
+const narrow = matchMedia('(max-width: 720px)');
+let uid = 1;
+const nid = () => 'a' + (uid++) + Date.now().toString(36);
+const find = id => S.annots.find(a => a.id === id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ---------- History ---------- */
+const snapshot = () => JSON.stringify({ a: S.annots, d: S.pages.map(p => p.deleted ? 1 : 0), f: S.fields });
+function pushHistory() {
+  S.history.push(snapshot());
+  if (S.history.length > 80) S.history.shift();
+  S.future = [];
+}
+function restore(snap) {
+  const s = JSON.parse(snap);
+  S.annots = s.a; S.pages.forEach((p, i) => p.deleted = !!s.d[i]);
+  S.fields = s.f || {};
+  S.sel = null; S.editing = null;
+  renderAll(); applyZoom(); syncFields();
+}
+function undo() { commitEdit(); if (!S.history.length) return; S.future.push(snapshot()); restore(S.history.pop()); }
+function redo() { commitEdit(); if (!S.future.length) return; S.history.push(snapshot()); restore(S.future.pop()); }
+
+/* ---------- Tools & properties ---------- */
+const keyOf = a => !a ? null : a.type === 'text' ? 'text' : a.type === 'mark' ? 'mark' : a.type === 'path' ? 'pen' : (a.type === 'rect' && a.kind === 'highlight') ? 'highlight' : null;
+const toolKey = t => ['text', 'mark', 'pen', 'highlight'].includes(t) ? t : null;
+const sizeOf = (a, key) => key === 'text' ? a.size : key === 'mark' ? a.w : a.width;
+
+function setTool(t) {
+  commitEdit();
+  if (t === 'sign') { openSig(); return; }
+  if (t === 'image') { $('#imgInput').click(); return; }
+  S.tool = t;
+  if (t !== 'place') S.pending = null;
+  if (t !== 'select' && S.sel) { const old = find(S.sel); S.sel = null; if (old) renderLayer(S.pages[old.page]); }
+  document.body.dataset.tool = t;
+  updateProps();
+  if (narrow.matches && t !== 'select' && t !== 'place') toast($('#hint').textContent);
+}
+
+function setSel(id) {
+  const old = S.sel; S.sel = id;
+  new Set([old, id]).forEach(x => { const a = find(x); if (a) renderLayer(S.pages[a.page]); });
+  updateProps();
+}
+
+function updateProps() {
+  const a = find(S.sel);
+  const key = a ? keyOf(a) : toolKey(S.tool);
+  $$('.tool').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === S.tool || (S.tool === 'place' && b.dataset.tool === S.pending?.from))));
+  $('#pgColor').hidden = !key;
+  if (key) {
+    const c = a ? a.color : S.colors[key];
+    $$('#swatches .sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c.toLowerCase() === c.toLowerCase())));
+    $('#colorCustom').value = c;
+  }
+  const showSize = key && key !== 'highlight';
+  $('#pgSize').hidden = !showSize;
+  if (showSize) {
+    const cfg = SIZE_CFG[key], r = $('#sizeRange');
+    r.min = cfg.min; r.max = cfg.max; r.step = cfg.step;
+    const v = a ? sizeOf(a, key) : S.sizes[key];
+    r.value = v; $('#sizeVal').textContent = (+v).toFixed(cfg.step < 1 ? 1 : 0);
+    $('#sizeLabel').textContent = cfg.label;
+  }
+  const showMark = S.tool === 'mark' || a?.type === 'mark';
+  $('#pgMark').hidden = !showMark;
+  if (showMark) { const k = a?.type === 'mark' ? a.kind : S.markKind; $$('.mk').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mark === k))); }
+  $('#pgSel').hidden = !a;
+  $('#hint').textContent = S.pending ? HINTS.place
+    : (S.tool === 'text' && S.hasFields) ? 'Este PDF tiene campos rellenables: toca una casilla resaltada para escribir en ella.'
+    : (HINTS[S.tool] || '');
+  $('#btnUndo').disabled = !S.history.length;
+  $('#btnRedo').disabled = !S.future.length;
+}
+
+function setColor(c, live) {
+  const a = find(S.sel); const key = a ? keyOf(a) : toolKey(S.tool);
+  if (!key) return;
+  S.colors[key] = c;
+  if (a) {
+    if (!live || !S.sliding) pushHistory();
+    if (live) S.sliding = true;
+    a.color = c; renderLayer(S.pages[a.page]);
+  }
+  updateProps();
+}
+function setSize(v) {
+  const a = find(S.sel); const key = a ? keyOf(a) : toolKey(S.tool);
+  if (!key) return;
+  S.sizes[key] = v;
+  $('#sizeVal').textContent = v.toFixed(SIZE_CFG[key].step < 1 ? 1 : 0);
+  if (!a) return;
+  if (!S.sliding) { pushHistory(); S.sliding = true; }
+  if (key === 'text') a.size = v;
+  else if (key === 'mark') { const cx = a.x + a.w / 2, cy = a.y + a.h / 2; a.w = a.h = v; a.x = cx - v / 2; a.y = cy - v / 2; }
+  else a.width = v;
+  renderLayer(S.pages[a.page]);
+}
+
+function deleteSel() {
+  const a = find(S.sel); if (!a) return;
+  pushHistory();
+  S.annots = S.annots.filter(q => q !== a); S.sel = null;
+  renderLayer(S.pages[a.page]); updateProps();
+}
+
+/* ---------- Pages ---------- */
+const desk = $('#desk'), pagesEl = $('#pages');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.target._p) en.target._p.visible = en.isIntersecting; });
+  schedule();
+}, { root: desk, rootMargin: '800px 0px' });
+
+function fitZoom() {
+  const maxW = Math.max(...S.pages.map(p => p.w));
+  return Math.floor(clamp((desk.clientWidth - (narrow.matches ? 32 : 48)) / maxW, 0.3, 1.5) * 100) / 100;
+}
+
+function buildPages() {
+  observer.disconnect();
+  pagesEl.replaceChildren();
+  S.pages.forEach((p, i) => {
+    const sec = document.createElement('section'); sec.className = 'page-block';
+    const mm = v => Math.round(v * 25.4 / 72);
+    sec.innerHTML = `<div class="page-head"><span class="pnum">Página ${i + 1}</span><span class="pdim">${mm(p.w)} × ${mm(p.h)} mm</span><button class="lnk" type="button">Eliminar página</button></div>`;
+    const sheet = document.createElement('div'); sheet.className = 'sheet';
+    const canvas = document.createElement('canvas');
+    const layer = document.createElement('div'); layer.className = 'layer';
+    const fieldsEl = document.createElement('div'); fieldsEl.className = 'fields';
+    const annsEl = document.createElement('div'); annsEl.className = 'anns';
+    p.fieldEls = p.widgets.map(makeField);
+    fieldsEl.append(...p.fieldEls.map(f => f.el));
+    layer.append(fieldsEl, annsEl);
+    sheet.append(canvas, layer);
+    const gone = document.createElement('div'); gone.className = 'gone';
+    gone.innerHTML = `<span>Página ${i + 1} eliminada</span><button class="lnk" style="margin:0;display:inline" type="button">Restaurar</button>`;
+    sec.append(sheet, gone);
+    pagesEl.append(sec);
+    Object.assign(p, { sec, sheet, canvas, layer, annsEl, gone, renderedZoom: 0, visible: false });
+    sheet._p = p; observer.observe(sheet);
+    sec.querySelector('.page-head .lnk').onclick = () => deletePage(p);
+    gone.querySelector('button').onclick = () => { pushHistory(); p.deleted = false; renderAll(); applyZoom(); };
+    layer.addEventListener('pointerdown', e => onDown(e, p));
+    layer.addEventListener('pointermove', e => onMove(e));
+    layer.addEventListener('pointerup', e => onUp(e));
+    layer.addEventListener('pointercancel', e => onUp(e));
+  });
+}
+
+/* ---------- Fillable form fields ---------- */
+function makeField(w) {
+  let el;
+  if (w.kind === 'text') {
+    el = document.createElement(w.multiLine ? 'textarea' : 'input');
+    if (!w.multiLine) el.type = 'text';
+    if (w.maxLen) el.maxLength = w.maxLen;
+    el.spellcheck = false; el.autocomplete = 'off';
+    if (coarse.matches) {
+      // On touch screens, type in the big bottom panel instead of the tiny field
+      el.readOnly = true; el.inputMode = 'none';
+      el.addEventListener('click', e => { e.preventDefault(); el.blur(); openFieldSheet(el._f); });
+    }
+    el.style.fontSize = w.fontSize + 'px';
+    el.style.textAlign = ['left', 'center', 'right'][w.align] || 'left';
+    el.addEventListener('focus', () => { el._pre = snapshot(); el._preVal = S.fields[w.name]; });
+    el.addEventListener('input', () => { S.fields[w.name] = el.value; syncFields(w.name, el); });
+    el.addEventListener('blur', () => {
+      if (el._pre && S.fields[w.name] !== el._preVal) { S.history.push(el._pre); S.future = []; updateProps(); }
+      el._pre = null;
+    });
+  } else if (w.kind === 'check' || w.kind === 'radio') {
+    el = document.createElement('input'); el.type = 'checkbox';
+    el.addEventListener('change', () => {
+      const on = el.checked;
+      el.checked = !on; pushHistory(); el.checked = on;
+      S.fields[w.name] = w.kind === 'check' ? on : (on ? w.exportValue : null);
+      syncFields(w.name); updateProps();
+    });
+  } else {
+    el = document.createElement('select');
+    if (!w.options.some(o => o.exportValue === '')) el.add(new Option('', ''));
+    w.options.forEach(o => el.add(new Option(o.displayValue ?? o.exportValue, o.exportValue)));
+    el.style.fontSize = w.fontSize + 'px';
+    el.addEventListener('change', () => {
+      const v = el.value; el.value = S.fields[w.name] ?? ''; pushHistory(); el.value = v;
+      S.fields[w.name] = v; syncFields(w.name); updateProps();
+    });
+  }
+  el.className = 'fld fld-' + w.kind;
+  Object.assign(el.style, { left: w.x + 'px', top: w.y + 'px', width: w.w + 'px', height: w.h + 'px' });
+  el.disabled = w.readOnly;
+  el.setAttribute('aria-label', w.label);
+  el.title = w.label;
+  const f = { el, w };
+  el._f = f;
+  setFieldEl(f);
+  return f;
+}
+function setFieldEl({ el, w }) {
+  const v = S.fields[w.name];
+  if (w.kind === 'check') el.checked = !!v;
+  else if (w.kind === 'radio') el.checked = v != null && v === w.exportValue;
+  else el.value = v ?? '';
+}
+function syncFields(name, except) {
+  S.pages.forEach(p => (p.fieldEls || []).forEach(f => {
+    if ((name == null || f.w.name === name) && f.el !== except) setFieldEl(f);
+  }));
+}
+function focusField(f) { if (coarse.matches) openFieldSheet(f); else f.el.focus({ preventScroll: true }); }
+
+/* Bottom-sheet field editor for phones */
+const fs = { cur: null, pre: null, preVal: null };
+const fsInput = $('#fsInput');
+const fieldList = () => S.pages.filter(p => !p.deleted).flatMap(p => p.fieldEls.filter(f => f.w.kind === 'text' && !f.w.readOnly));
+function fsCommit() {
+  if (fs.cur && S.fields[fs.cur.w.name] !== fs.preVal) { S.history.push(fs.pre); S.future = []; updateProps(); }
+}
+function openFieldSheet(f) {
+  if (fs.cur) { fsCommit(); fs.cur.el.classList.remove('fld-active'); }
+  fs.cur = f; fs.pre = snapshot(); fs.preVal = S.fields[f.w.name];
+  const list = fieldList(), i = list.indexOf(f);
+  $('#fsLabel').textContent = f.w.label;
+  $('#fsCount').textContent = `${i + 1} / ${list.length}`;
+  $('#fsPrev').disabled = i <= 0;
+  $('#fsNext').textContent = i < list.length - 1 ? 'Siguiente' : 'Terminar';
+  fsInput.rows = f.w.multiLine ? 3 : 1;
+  fsInput.maxLength = f.w.maxLen || 100000;
+  fsInput.enterKeyHint = f.w.multiLine ? 'enter' : (i < list.length - 1 ? 'next' : 'done');
+  fsInput.value = S.fields[f.w.name] ?? '';
+  $('#fieldSheet').hidden = false;
+  f.el.classList.add('fld-active');
+  fsInput.focus({ preventScroll: true });
+  setTimeout(() => f.el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
+}
+function closeFieldSheet() {
+  if (!fs.cur) return;
+  fsCommit(); fs.cur.el.classList.remove('fld-active');
+  fs.cur = null; $('#fieldSheet').hidden = true; fsInput.blur();
+}
+function fsStep(d) {
+  const list = fieldList(), i = list.indexOf(fs.cur), next = list[i + d];
+  if (next) openFieldSheet(next); else closeFieldSheet();
+}
+fsInput.addEventListener('input', () => {
+  if (!fs.cur) return;
+  const v = fs.cur.w.multiLine ? fsInput.value : fsInput.value.replace(/\n/g, ' ');
+  S.fields[fs.cur.w.name] = v; syncFields(fs.cur.w.name);
+});
+fsInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !fs.cur?.w.multiLine) { e.preventDefault(); fsStep(1); }
+  if (e.key === 'Escape') closeFieldSheet();
+});
+$('#fsPrev').onclick = () => fsStep(-1);
+$('#fsNext').onclick = () => fsStep(1);
+$('#fsDone').onclick = closeFieldSheet;
+if (window.visualViewport) {
+  const kb = () => {
+    const vv = window.visualViewport;
+    document.documentElement.style.setProperty('--kb', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+  };
+  visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb);
+}
+
+function nearestTextField(p, x, y) {
+  let best = null, bd = 14;
+  (p.fieldEls || []).forEach(f => {
+    const w = f.w; if (w.kind !== 'text' || w.readOnly) return;
+    const dx = Math.max(w.x - x, 0, x - (w.x + w.w)), dy = Math.max(w.y - y, 0, y - (w.y + w.h));
+    const d = Math.hypot(dx, dy);
+    if (d < bd) { bd = d; best = f; }
+  });
+  return best;
+}
+async function readWidgets(pg, vp, meta, values) {
+  let list = [];
+  try { list = await pg.getAnnotations({ intent: 'display' }); } catch (_) {}
+  const out = [];
+  for (const an of list) {
+    if (an.subtype !== 'Widget' || an.hidden || !an.fieldName || !an.rect) continue;
+    const kind = an.fieldType === 'Tx' ? 'text' : an.fieldType === 'Ch' ? 'select'
+      : an.fieldType === 'Btn' ? (an.checkBox ? 'check' : an.radioButton ? 'radio' : null) : null;
+    if (!kind) continue;
+    const r = vp.convertToViewportRectangle(an.rect);
+    const x = Math.min(r[0], r[2]), y = Math.min(r[1], r[3]), w = Math.abs(r[2] - r[0]), h = Math.abs(r[3] - r[1]);
+    if (w < 2 || h < 2) continue;
+    const fs = an.defaultAppearanceData?.fontSize;
+    const wd = {
+      name: an.fieldName, kind, x, y, w, h,
+      multiLine: !!an.multiLine, maxLen: an.maxLen || 0, align: an.textAlignment || 0, readOnly: !!an.readOnly,
+      exportValue: kind === 'radio' ? an.buttonValue : an.exportValue,
+      options: an.options || [], label: an.alternativeText || an.fieldName,
+      fontSize: fs > 0 ? fs : (an.multiLine ? 10 : clamp(h * 0.62, 6, 12))
+    };
+    if (!(wd.name in meta)) {
+      let v = an.fieldValue;
+      if (kind === 'text') v = v == null ? '' : String(Array.isArray(v) ? v.join('') : v);
+      else if (kind === 'check') v = !!v && v !== 'Off' && (an.exportValue == null || v === an.exportValue);
+      else if (kind === 'radio') v = (v && v !== 'Off') ? String(v) : null;
+      else v = String(Array.isArray(v) ? (v[0] ?? '') : (v ?? ''));
+      meta[wd.name] = { kind, initial: v, options: wd.options };
+      values[wd.name] = v;
+    }
+    out.push(wd);
+  }
+  return out;
+}
+
+function deletePage(p) {
+  if (S.pages.filter(q => !q.deleted).length <= 1) { toast('El PDF necesita al menos una página.'); return; }
+  commitEdit(); pushHistory();
+  p.deleted = true;
+  const a = find(S.sel); if (a && a.page === p.index) S.sel = null;
+  renderAll(); applyZoom();
+  toast(`Página ${p.index + 1} eliminada. Puedes deshacerlo.`);
+}
+
+function applyZoom() {
+  const z = S.zoom;
+  $('#zoomVal').textContent = Math.round(z * 100) + '%';
+  S.pages.forEach(p => {
+    p.sheet.style.width = p.w * z + 'px'; p.sheet.style.height = p.h * z + 'px';
+    p.gone.style.width = p.w * z + 'px';
+    p.layer.style.width = p.w + 'px'; p.layer.style.height = p.h + 'px';
+    p.layer.style.transform = `scale(${z})`;
+    p.sec.classList.toggle('is-deleted', p.deleted);
+  });
+  const live = S.pages.filter(p => !p.deleted).length;
+  $('#docPages').textContent = `${live} ${live === 1 ? 'página' : 'páginas'}`;
+  schedule();
+}
+function setZoom(z) { S.zoom = Math.round(clamp(z, 0.3, 3) * 100) / 100; applyZoom(); }
+
+function schedule() {
+  S.pages.forEach(p => { if (p.visible && !p.deleted && !p.rendering && p.renderedZoom !== S.zoom) renderPage(p); });
+}
+async function renderPage(p) {
+  p.rendering = true;
+  const z = S.zoom, token = S.loadToken;
+  try {
+    const page = await S.doc.getPage(p.index + 1);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // Phones cap canvas memory; keep each page under ~10 megapixels
+    const scale = Math.min(z * dpr, Math.sqrt(10e6 / (p.w * p.h)));
+    const vp = page.getViewport({ scale });
+    const c = document.createElement('canvas');
+    c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp, annotationMode: pdfjsLib.AnnotationMode.ENABLE_FORMS }).promise;
+    if (token !== S.loadToken) return;
+    p.canvas.replaceWith(c); p.canvas = c;
+  } catch (err) { console.error(err); }
+  finally {
+    p.renderedZoom = z; p.rendering = false;
+    if (token === S.loadToken) schedule();
+  }
+}
+
+/* ---------- Annotation rendering ---------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const pathD = pts => 'M' + (pts.length === 1 ? [pts[0], pts[0]] : pts).map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' L');
+
+function annotEl(a) {
+  const sel = S.sel === a.id, ed = S.editing === a.id;
+  let n;
+  if (a.type === 'path') {
+    const xs = a.points.map(q => q[0]), ys = a.points.map(q => q[1]);
+    const pad = a.width / 2 + 8;
+    const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad;
+    const w = Math.max(...xs) - Math.min(...xs) + pad * 2, h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+    n = document.createElementNS(SVGNS, 'svg');
+    n.setAttribute('class', 'ann ann-path' + (sel ? ' sel' : ''));
+    n.setAttribute('viewBox', `${x0} ${y0} ${w} ${h}`);
+    Object.assign(n.style, { left: x0 + 'px', top: y0 + 'px', width: w + 'px', height: h + 'px' });
+    const d = pathD(a.points);
+    n.innerHTML = `<path class="hit" d="${d}" fill="none" stroke="transparent" stroke-width="${a.width + 14}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${a.color}" stroke-width="${a.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  } else {
+    n = document.createElement('div');
+    n.className = `ann ann-${a.type}${sel ? ' sel' : ''}${ed ? ' editing' : ''}`;
+    n.style.left = a.x + 'px'; n.style.top = a.y + 'px';
+    if (a.type === 'text') {
+      n.style.fontSize = a.size + 'px'; n.style.color = a.color;
+      n.textContent = a.text;
+      if (ed) {
+        n.contentEditable = 'plaintext-only';
+        if (n.contentEditable !== 'plaintext-only') {
+          n.contentEditable = 'true';
+          n.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
+        }
+        n.spellcheck = false;
+        n.addEventListener('blur', () => { if (S.editing === a.id) commitEdit(); });
+        n.addEventListener('keydown', e => {
+          if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); n.blur(); }
+        });
+      }
+    } else {
+      n.style.width = a.w + 'px'; n.style.height = a.h + 'px';
+      if (a.type === 'image') { const img = new Image(); img.src = a.src; img.alt = ''; img.draggable = false; n.append(img); }
+      else if (a.type === 'rect') { n.classList.add('k-' + a.kind); if (a.kind === 'highlight') n.style.background = a.color; }
+      else if (a.type === 'mark') n.innerHTML = markSvg(a.kind, a.color);
+    }
+    if (sel && !ed) { const h = document.createElement('div'); h.className = 'handle'; n.append(h); }
+  }
+  n.dataset.id = a.id;
+  return n;
+}
+
+function renderLayer(p) {
+  if (!p) return;
+  p.annsEl.replaceChildren(...S.annots.filter(a => a.page === p.index).map(annotEl));
+}
+function renderAll() { S.pages.forEach(renderLayer); updateProps(); }
+
+/* ---------- Text editing ---------- */
+function startEdit(a, isNew) {
+  S.editing = a.id; S.editNew = isNew; S.sel = a.id;
+  renderLayer(S.pages[a.page]); updateProps();
+  setTimeout(() => {
+    const n = S.pages[a.page].layer.querySelector(`[data-id="${a.id}"]`);
+    if (!n) return;
+    n.focus({ preventScroll: true });
+    const r = document.createRange(); r.selectNodeContents(n); r.collapse(false);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  }, 0);
+}
+function commitEdit() {
+  if (!S.editing) return;
+  const a = find(S.editing); S.editing = null;
+  if (!a) return;
+  const p = S.pages[a.page];
+  const n = p.layer.querySelector(`[data-id="${a.id}"]`);
+  const text = n ? n.innerText.replace(/ /g, ' ').replace(/\n+$/, '') : a.text;
+  if (!text.trim()) {
+    if (S.editNew) S.history.pop(); else pushHistory();
+    S.annots = S.annots.filter(q => q !== a);
+    if (S.sel === a.id) S.sel = null;
+  } else if (text !== a.text) {
+    if (!S.editNew) pushHistory();
+    a.text = text;
+  }
+  renderLayer(p); updateProps();
+}
+
+/* ---------- Pointer handling on pages ---------- */
+function pt(e, p) {
+  const r = p.sheet.getBoundingClientRect();
+  return [(e.clientX - r.left) / S.zoom, (e.clientY - r.top) / S.zoom];
+}
+function capture(e, p) { try { p.layer.setPointerCapture(e.pointerId); } catch (_) {} }
+
+function onDown(e, p) {
+  if (e.button > 0) return;
+  const t = e.target;
+  if (t.closest('.fld')) { commitEdit(); if (S.sel) setSel(null); return; }
+  if (fs.cur) closeFieldSheet();
+  if (S.editing) {
+    const ed = p.layer.querySelector('.editing');
+    if (ed && ed.contains(t)) return;
+    commitEdit();
+  }
+  const [x, y] = pt(e, p);
+  const node = t.closest('[data-id]');
+  const a = node && find(node.dataset.id);
+
+  if (S.pending) { e.preventDefault(); placePending(p, x, y); return; }
+
+  if (a && S.tool === 'select') {
+    e.preventDefault();
+    const wasSel = S.sel === a.id;
+    const resize = t.classList.contains('handle');
+    const h0 = node.offsetHeight || 1;
+    setSel(a.id);
+    S.drag = { mode: resize ? 'resize' : 'move', a, p, sx: x, sy: y, orig: JSON.parse(JSON.stringify(a)), pushed: false, wasSel, h0 };
+    capture(e, p);
+    return;
+  }
+  if (a && S.tool === 'text' && a.type === 'text') { e.preventDefault(); startEdit(a, false); return; }
+  if (a && S.tool === 'mark' && a.type === 'mark') { e.preventDefault(); S.sel = a.id; deleteSel(); return; }
+
+  if (S.tool === 'select') { if (S.sel) setSel(null); return; }
+  e.preventDefault();
+
+  if (S.tool === 'text' && S.hasFields) {
+    const f = nearestTextField(p, x, y);
+    if (f) focusField(f);
+    else toast('Escribe dentro de las casillas resaltadas de este formulario.');
+    return;
+  }
+  if (S.tool === 'text') {
+    pushHistory();
+    const size = S.sizes.text;
+    const na = { id: nid(), page: p.index, type: 'text', x, y: y - size * 0.6, size, color: S.colors.text, text: '' };
+    S.annots.push(na); startEdit(na, true);
+  } else if (S.tool === 'mark') {
+    pushHistory();
+    const s = S.sizes.mark;
+    S.annots.push({ id: nid(), page: p.index, type: 'mark', kind: S.markKind, x: x - s / 2, y: y - s / 2, w: s, h: s, color: S.colors.mark });
+    renderLayer(p); updateProps();
+  } else if (S.tool === 'pen') {
+    pushHistory();
+    const na = { id: nid(), page: p.index, type: 'path', points: [[x, y]], width: S.sizes.pen, color: S.colors.pen };
+    S.annots.push(na); S.drag = { mode: 'pen', a: na, p };
+    capture(e, p); renderLayer(p);
+  } else if (S.tool === 'highlight' || S.tool === 'whiteout') {
+    pushHistory();
+    const na = { id: nid(), page: p.index, type: 'rect', kind: S.tool, x, y, w: 0, h: 0, color: S.tool === 'highlight' ? S.colors.highlight : '#ffffff' };
+    S.annots.push(na); S.drag = { mode: 'rect', a: na, p, sx: x, sy: y };
+    capture(e, p); renderLayer(p);
+  }
+}
+
+function onMove(e) {
+  const d = S.drag; if (!d) return;
+  const [x, y] = pt(e, d.p);
+  const a = d.a, o = d.orig;
+  if (d.mode === 'move' || d.mode === 'resize') {
+    const dx = x - d.sx, dy = y - d.sy;
+    if (!d.pushed) { if (Math.hypot(dx, dy) < 2) return; pushHistory(); d.pushed = true; }
+    if (d.mode === 'move') {
+      if (a.type === 'path') a.points = o.points.map(q => [q[0] + dx, q[1] + dy]);
+      else { a.x = o.x + dx; a.y = o.y + dy; }
+    } else if (a.type === 'text') {
+      a.size = Math.round(clamp(o.size * (d.h0 + dy) / d.h0, 6, 120) * 2) / 2;
+    } else {
+      const w = Math.max(8, o.w + dx);
+      if (a.type === 'rect') { a.w = w; a.h = Math.max(4, o.h + dy); }
+      else { a.w = w; a.h = w * o.h / o.w; }
+    }
+  } else if (d.mode === 'pen') {
+    const last = a.points[a.points.length - 1];
+    if (Math.hypot(x - last[0], y - last[1]) < 0.8) return;
+    a.points.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+  } else if (d.mode === 'rect') {
+    a.x = Math.min(d.sx, x); a.y = Math.min(d.sy, y);
+    a.w = Math.abs(x - d.sx); a.h = Math.abs(y - d.sy);
+  }
+  renderLayer(d.p);
+}
+
+function onUp() {
+  const d = S.drag; if (!d) return;
+  S.drag = null;
+  const a = d.a;
+  if (d.mode === 'move' && !d.pushed && d.wasSel && a.type === 'text') { startEdit(a, false); return; }
+  if (d.mode === 'rect' && (a.w < 3 || a.h < 3)) { S.annots = S.annots.filter(q => q !== a); S.history.pop(); }
+  renderLayer(d.p); updateProps();
+}
+
+/* Double click on a text in select mode edits it */
+pagesEl.addEventListener('dblclick', e => {
+  const node = e.target.closest('[data-id]'); const a = node && find(node.dataset.id);
+  if (a && a.type === 'text' && S.editing !== a.id) startEdit(a, false);
+});
+
+/* ---------- Images & signature ---------- */
+function placePending(p, x, y) {
+  const { src, w, h } = S.pending;
+  pushHistory();
+  const na = { id: nid(), page: p.index, type: 'image', x: x - w / 2, y: y - h / 2, w, h, src };
+  S.annots.push(na);
+  S.pending = null;
+  setTool('select');
+  setSel(na.id);
+}
+function startPlacing(src, w, h, from) {
+  S.pending = { src, w, h, from };
+  S.tool = 'place'; document.body.dataset.tool = 'place';
+  if (S.sel) setSel(null);
+  updateProps();
+  toast(from === 'sign' ? 'Toca la página para colocar la firma.' : 'Toca la página para colocar la imagen.');
+}
+
+$('#imgInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    let src = url;
+    const big = Math.max(img.naturalWidth, img.naturalHeight) > 2000;
+    const native = /^data:image\/(png|jpe?g)/.test(url);
+    if (big || !native) {
+      const k = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      src = /jpe?g/.test(f.type) ? c.toDataURL('image/jpeg', 0.9) : c.toDataURL('image/png');
+    }
+    const w = Math.min(220, img.naturalWidth * 0.75);
+    startPlacing(src, w, w * img.naturalHeight / img.naturalWidth, 'image');
+  } catch (_) { toast('No se pudo leer la imagen. Prueba con un PNG o JPG.'); }
+});
+
+const sig = { canvas: $('#sigCanvas'), ink: '#000000', drawing: false, has: false, box: null, dpr: 1 };
+SWATCHES.slice(0, 2).forEach(([c, name]) => {
+  const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.dataset.c = c; b.setAttribute('aria-label', name);
+  b.onclick = () => { sig.ink = c; $$('#sigInk .sw').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
+  $('#sigInk').append(b);
+});
+$('#sigInk .sw').setAttribute('aria-pressed', 'true');
+
+function openSig() {
+  $('#sigModal').hidden = false;
+  $('#sigReuse').hidden = !S.lastSig;
+  const r = sig.canvas.getBoundingClientRect();
+  sig.dpr = Math.min(3, window.devicePixelRatio || 1);
+  sig.canvas.width = Math.round(r.width * sig.dpr); sig.canvas.height = Math.round(r.height * sig.dpr);
+  clearSig();
+}
+function clearSig() {
+  sig.canvas.getContext('2d').clearRect(0, 0, sig.canvas.width, sig.canvas.height);
+  sig.has = false; sig.box = null;
+}
+function closeSig() { $('#sigModal').hidden = true; }
+function sigPt(e) { const r = sig.canvas.getBoundingClientRect(); return [(e.clientX - r.left) * sig.dpr, (e.clientY - r.top) * sig.dpr]; }
+function grow(x, y) {
+  const b = sig.box || (sig.box = { x0: x, y0: y, x1: x, y1: y });
+  b.x0 = Math.min(b.x0, x); b.y0 = Math.min(b.y0, y); b.x1 = Math.max(b.x1, x); b.y1 = Math.max(b.y1, y);
+}
+sig.canvas.addEventListener('pointerdown', e => {
+  e.preventDefault(); sig.canvas.setPointerCapture(e.pointerId);
+  sig.drawing = true; sig.last = sigPt(e);
+  const ctx = sig.canvas.getContext('2d');
+  ctx.fillStyle = sig.ink; ctx.beginPath(); ctx.arc(sig.last[0], sig.last[1], 1.3 * sig.dpr, 0, Math.PI * 2); ctx.fill();
+  grow(...sig.last); sig.has = true;
+});
+sig.canvas.addEventListener('pointermove', e => {
+  if (!sig.drawing) return;
+  const p = sigPt(e), ctx = sig.canvas.getContext('2d');
+  ctx.strokeStyle = sig.ink; ctx.lineWidth = 2.6 * sig.dpr; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(sig.last[0], sig.last[1]); ctx.lineTo(p[0], p[1]); ctx.stroke();
+  sig.last = p; grow(...p);
+});
+['pointerup', 'pointercancel'].forEach(ev => sig.canvas.addEventListener(ev, () => sig.drawing = false));
+$('#sigClear').onclick = clearSig;
+$('#sigCancel').onclick = closeSig;
+$('#sigModal').addEventListener('pointerdown', e => { if (e.target.id === 'sigModal') closeSig(); });
+$('#sigReuse').onclick = () => { closeSig(); const s = S.lastSig; startPlacing(s.src, s.w, s.h, 'sign'); };
+$('#sigOk').onclick = () => {
+  if (!sig.has) { toast('Dibuja tu firma primero.'); return; }
+  const pad = 4 * sig.dpr, b = sig.box;
+  const x0 = Math.max(0, b.x0 - pad), y0 = Math.max(0, b.y0 - pad);
+  const w = Math.min(sig.canvas.width, b.x1 + pad) - x0, h = Math.min(sig.canvas.height, b.y1 + pad) - y0;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(sig.canvas, x0, y0, w, h, 0, 0, w, h);
+  let dw = 170, dh = dw * h / w;
+  if (dh > 70) { dh = 70; dw = dh * w / h; }
+  S.lastSig = { src: c.toDataURL('image/png'), w: dw, h: dh };
+  closeSig();
+  startPlacing(S.lastSig.src, dw, dh, 'sign');
+};
+
+/* ---------- Export ---------- */
+const hex = c => { const n = parseInt(c.slice(1), 16); return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); };
+const dataBytes = src => { const s = atob(src.split(',')[1]); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const encOk = new Map();
+function winAnsi(s, font) {
+  let out = '';
+  for (const ch of s.replace(/\t/g, '    ')) {
+    if (!encOk.has(ch)) { try { font.encodeText(ch); encOk.set(ch, true); } catch (_) { encOk.set(ch, false); } }
+    out += encOk.get(ch) ? ch : '?';
+  }
+  return out;
+}
+
+async function buildPdf() {
+  const doc = await PDFDocument.load(S.bytes, { ignoreEncryption: true });
+  const pages = doc.getPages();
+  let font = null; const imgs = new Map();
+  for (const a of S.annots) {
+    const p = S.pages[a.page]; if (!p || p.deleted) continue;
+    const pg = pages[a.page];
+    const P = (x, y) => { const [px, py] = p.vp.convertToPdfPoint(x, y); return { x: px, y: py }; };
+    const rot = degrees(p.rot || 0);
+    if (a.type === 'text') {
+      font = font || await doc.embedFont(StandardFonts.Helvetica);
+      const lh = a.size * 1.2;
+      a.text.split('\n').forEach((line, i) => {
+        const t = winAnsi(line, font); if (!t) return;
+        const b = P(a.x, a.y + i * lh + a.size * TEXT_BASELINE);
+        pg.drawText(t, { x: b.x, y: b.y, size: a.size, font, color: hex(a.color), rotate: rot });
+      });
+    } else if (a.type === 'mark') {
+      const s = a.w / 24, c = hex(a.color);
+      const seg = (x1, y1, x2, y2) => pg.drawLine({ start: P(a.x + x1 * s, a.y + y1 * s), end: P(a.x + x2 * s, a.y + y2 * s), thickness: 2.6 * s, color: c, lineCap: LineCapStyle.Round });
+      if (a.kind === 'check') { seg(4, 12.5, 9.5, 18); seg(9.5, 18, 20, 6); }
+      else if (a.kind === 'x') { seg(5, 5, 19, 19); seg(19, 5, 5, 19); }
+      else { const m = P(a.x + 12 * s, a.y + 12 * s); pg.drawCircle({ x: m.x, y: m.y, size: 6 * s, color: c }); }
+    } else if (a.type === 'path') {
+      const c = hex(a.color), pts = a.points.map(q => P(q[0], q[1]));
+      if (pts.length === 1) pg.drawCircle({ x: pts[0].x, y: pts[0].y, size: a.width / 2, color: c });
+      for (let i = 1; i < pts.length; i++) pg.drawLine({ start: pts[i - 1], end: pts[i], thickness: a.width, color: c, lineCap: LineCapStyle.Round });
+    } else if (a.type === 'rect') {
+      const c1 = P(a.x, a.y), c2 = P(a.x + a.w, a.y + a.h);
+      const o = { x: Math.min(c1.x, c2.x), y: Math.min(c1.y, c2.y), width: Math.abs(c2.x - c1.x), height: Math.abs(c2.y - c1.y), color: hex(a.color) };
+      if (a.kind === 'highlight') { o.opacity = 0.38; if (BlendMode) o.blendMode = BlendMode.Multiply; }
+      pg.drawRectangle(o);
+    } else if (a.type === 'image') {
+      let im = imgs.get(a.src);
+      if (!im) { im = a.src.startsWith('data:image/png') ? await doc.embedPng(dataBytes(a.src)) : await doc.embedJpg(dataBytes(a.src)); imgs.set(a.src, im); }
+      const b = P(a.x, a.y + a.h);
+      pg.drawImage(im, { x: b.x, y: b.y, width: a.w, height: a.h, rotate: rot });
+    }
+  }
+  await fillForm(doc);
+  S.pages.filter(p => p.deleted).map(p => p.index).sort((x, y) => y - x).forEach(i => doc.removePage(i));
+  return doc.save({ updateFieldAppearances: false });
+}
+
+/* Writes changed field values into the PDF's own form fields */
+async function fillForm(doc) {
+  const changed = Object.entries(S.fieldMeta).filter(([n, m]) => JSON.stringify(S.fields[n]) !== JSON.stringify(m.initial));
+  if (!changed.length) return;
+  const form = doc.getForm();
+  const helv = await doc.embedFont(StandardFonts.Helvetica);
+  for (const [name, m] of changed) {
+    const v = S.fields[name];
+    try {
+      const f = form.getField(name);
+      if (f instanceof PDFTextField) f.setText(v ? winAnsi(v, helv) : '');
+      else if (f instanceof PDFCheckBox) v ? f.check() : f.uncheck();
+      else if (f instanceof PDFRadioGroup) {
+        if (v == null) f.clear();
+        else { const opts = f.getOptions(); f.select(opts.includes(v) ? v : opts[+v] ?? v); }
+      } else if (f instanceof PDFDropdown || f instanceof PDFOptionList) {
+        if (!v) f.clear();
+        else {
+          const o = m.options.find(q => q.exportValue === v);
+          const opts = f.getOptions();
+          f.select(opts.includes(v) ? v : (o && opts.includes(o.displayValue)) ? o.displayValue : v);
+        }
+      }
+    } catch (err) { console.warn('Campo no actualizado:', name, err); }
+  }
+  try { form.updateFieldAppearances(helv); }
+  catch (err) {
+    console.warn(err);
+    try { form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True); } catch (_) {}
+  }
+}
+
+async function download() {
+  commitEdit();
+  if (!S.bytes) return;
+  const btn = $('#btnDownload'), lbl = btn.querySelector('.lbl'), old = lbl.textContent;
+  btn.disabled = true; lbl.textContent = 'Generando…';
+  try {
+    const out = await buildPdf();
+    const filename = (S.name.replace(/\.pdf$/i, '') || 'documento') + '-editado.pdf';
+    const blob = new Blob([out], { type: 'application/pdf' });
+    let dl = null;
+    try { dl = window.claude?.use ? await window.claude.use('downloads') : null; } catch (_) {}
+    if (dl) {
+      try { await dl.save({ filename, data: blob }); toast('PDF descargado.'); }
+      catch (err) {
+        const c = err?.code;
+        toast(c === 'declined' ? 'Descarga cancelada.' : c === 'rate_limited' ? 'Ya hay una descarga pendiente. Espera un momento.' : c === 'too_large' ? 'El PDF es demasiado grande para descargarlo aquí.' : 'La descarga no está disponible en esta vista.');
+      }
+    } else {
+      const u = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href = u; link.download = filename;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 4000);
+      toast('PDF descargado.');
+    }
+  } catch (err) {
+    console.error(err);
+    toast('No se pudo generar el PDF. Si está protegido, quita la protección y vuelve a abrirlo.');
+  } finally { btn.disabled = false; lbl.textContent = old; }
+}
+
+/* ---------- Loading ---------- */
+async function loadPdf(bytes, name, sample = false) {
+  let doc;
+  try { doc = await pdfjsLib.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise; }
+  catch (err) {
+    toast(err?.name === 'PasswordException' ? 'Este PDF tiene contraseña. Quítala y vuelve a abrirlo.' : 'No se pudo abrir el archivo. Comprueba que sea un PDF válido.');
+    return false;
+  }
+  const token = ++S.loadToken;
+  const pages = [], fieldMeta = {}, fields = {};
+  for (let i = 1; i <= doc.numPages; i++) {
+    const pg = await doc.getPage(i);
+    const vp = pg.getViewport({ scale: 1 });
+    const widgets = await readWidgets(pg, vp, fieldMeta, fields);
+    pages.push({ index: i - 1, vp, rot: pg.rotate || 0, w: vp.width, h: vp.height, deleted: false, widgets });
+  }
+  if (token !== S.loadToken) return false;
+  if (S.doc) S.doc.destroy();
+  Object.assign(S, { doc, bytes, name, isSample: sample, pages, annots: [], history: [], future: [], sel: null, editing: null, pending: null, drag: null,
+    fields, fieldMeta, hasFields: Object.keys(fieldMeta).length > 0 });
+  $('#sampleNote').hidden = !sample;
+  $('#docName').textContent = name;
+  closeFieldSheet();
+  S.userZoomed = false;
+  S.zoom = fitZoom();
+  buildPages(); applyZoom(); renderAll();
+  setTool(S.tool === 'place' ? 'select' : S.tool);
+  desk.scrollTop = 0;
+  return true;
+}
+
+async function openFile(f) {
+  if (!f) return;
+  const buf = new Uint8Array(await f.arrayBuffer());
+  const head = new TextDecoder('latin1').decode(buf.slice(0, 1024));
+  if (!head.includes('%PDF')) { toast('Ese archivo no es un PDF.'); return; }
+  commitEdit();
+  if (await loadPdf(buf, f.name || 'documento.pdf')) {
+    const n = Object.keys(S.fieldMeta).length;
+    toast(n ? `${f.name} abierto. Tiene ${n} ${n === 1 ? 'campo rellenable' : 'campos rellenables'}.` : `${f.name} abierto.`);
+  }
+}
+
+$('#btnOpen').onclick = $('#btnOpen2').onclick = () => $('#fileInput').click();
+$('#fileInput').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; openFile(f); });
+
+let dragDepth = 0;
+const hasFiles = e => Array.from(e.dataTransfer?.types || []).includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#drop').hidden = false; });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#drop').hidden = true; } });
+window.addEventListener('drop', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $('#drop').hidden = true;
+  const f = Array.from(e.dataTransfer.files).find(x => /pdf$/i.test(x.type) || /\.pdf$/i.test(x.name));
+  if (f) openFile(f); else toast('Suelta un archivo PDF.');
+});
+
+/* ---------- Controls wiring ---------- */
+$$('.tool').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+SWATCHES.forEach(([c, name]) => {
+  const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.dataset.c = c;
+  b.title = name; b.setAttribute('aria-label', name);
+  b.onclick = () => setColor(c, false);
+  $('#swatches').append(b);
+});
+$('#colorCustom').addEventListener('input', e => setColor(e.target.value, true));
+$('#colorCustom').addEventListener('change', () => { S.sliding = false; });
+$('#sizeRange').addEventListener('input', e => setSize(+e.target.value));
+$('#sizeRange').addEventListener('change', () => { S.sliding = false; updateProps(); });
+$$('.mk').forEach(b => b.onclick = () => {
+  const a = find(S.sel);
+  if (a?.type === 'mark') { pushHistory(); a.kind = b.dataset.mark; renderLayer(S.pages[a.page]); }
+  else S.markKind = b.dataset.mark;
+  updateProps();
+});
+$('#btnDelete').onclick = deleteSel;
+$('#btnUndo').onclick = undo;
+$('#btnRedo').onclick = redo;
+const STEPS = [0.3, 0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+$('#btnZoomIn').onclick = () => { S.userZoomed = true; setZoom(STEPS.find(s => s > S.zoom + 0.001) || 3); };
+$('#btnZoomOut').onclick = () => { S.userZoomed = true; setZoom([...STEPS].reverse().find(s => s < S.zoom - 0.001) || 0.3); };
+$('#zoomVal').onclick = () => { S.userZoomed = false; setZoom(fitZoom()); };
+$('#btnDownload').onclick = download;
+
+/* Zoom around a screen point (wheel or pinch) */
+function zoomAt(z, cx, cy) {
+  z = Math.round(clamp(z, 0.3, 3) * 100) / 100;
+  if (z === S.zoom) return;
+  const r = desk.getBoundingClientRect(), ox = cx - r.left, oy = cy - r.top, k = z / S.zoom;
+  const sl = (desk.scrollLeft + ox) * k - ox, st = (desk.scrollTop + oy) * k - oy;
+  S.userZoomed = true; setZoom(z);
+  desk.scrollLeft = sl; desk.scrollTop = st;
+}
+desk.addEventListener('wheel', e => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault(); zoomAt(S.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX, e.clientY);
+}, { passive: false });
+
+/* Two-finger pinch zoom; a second finger cancels any stroke in progress */
+let pinch = null;
+const tDist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+function cancelStroke() {
+  const d = S.drag; if (!d) return;
+  S.drag = null;
+  if (d.mode === 'pen' || d.mode === 'rect') { S.annots = S.annots.filter(q => q !== d.a); S.history.pop(); }
+  else if (d.pushed) { restore(S.history.pop()); return; }
+  renderLayer(d.p); updateProps();
+}
+desk.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) { cancelStroke(); pinch = { d0: tDist(e.touches), z0: S.zoom }; }
+}, { passive: true });
+desk.addEventListener('touchmove', e => {
+  if (!pinch || e.touches.length !== 2) return;
+  e.preventDefault();
+  const t = e.touches;
+  zoomAt(pinch.z0 * tDist(t) / pinch.d0, (t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2);
+}, { passive: false });
+desk.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null; });
+
+document.addEventListener('keydown', e => {
+  const tg = e.target;
+  const typing = tg.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName);
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (!$('#sigModal').hidden) { if (e.key === 'Escape') closeSig(); return; }
+  if (mod && !typing && (k === 'z' || k === 'y')) { e.preventDefault(); (k === 'y' || e.shiftKey) ? redo() : undo(); return; }
+  if (typing) return;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel) { e.preventDefault(); deleteSel(); return; }
+  if (e.key === 'Escape') { if (S.pending) setTool('select'); else if (S.sel) setSel(null); return; }
+  if (S.sel && e.key.startsWith('Arrow')) {
+    e.preventDefault();
+    const a = find(S.sel), st = e.shiftKey ? 10 : 1;
+    const dx = e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0, dy = e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0;
+    pushHistory();
+    if (a.type === 'path') a.points = a.points.map(q => [q[0] + dx, q[1] + dy]); else { a.x += dx; a.y += dy; }
+    renderLayer(S.pages[a.page]); updateProps(); return;
+  }
+  if (mod || e.altKey) return;
+  const map = { v: 'select', t: 'text', c: 'mark', d: 'pen', r: 'highlight', b: 'whiteout' };
+  if (map[k]) setTool(map[k]);
+});
+
+let resizeT;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if (S.pages.length && !S.userZoomed) setZoom(fitZoom()); else schedule(); }, 150);
+});
+
+/* ---------- Sample document ---------- */
+async function makeSample() {
+  const doc = await PDFDocument.create();
+  doc.setTitle('Formulario de inscripción');
+  const pg = doc.addPage([612, 792]);
+  const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ink = rgb(.11, .13, .19), grey = rgb(.42, .45, .51), rule = rgb(.72, .74, .78), acc = rgb(.17, .31, .78);
+  pg.drawText('CENTRO CULTURAL LAS ACACIAS', { x: 72, y: 728, size: 9, font: fb, color: acc });
+  pg.drawText('Formulario de inscripción', { x: 72, y: 698, size: 24, font: fb, color: ink });
+  pg.drawText('Talleres de otoño · Del 3 de noviembre al 19 de diciembre', { x: 72, y: 678, size: 11, font: f, color: grey });
+  pg.drawLine({ start: { x: 72, y: 660 }, end: { x: 540, y: 660 }, thickness: 1.2, color: ink });
+  const field = (label, x, y, w) => {
+    pg.drawText(label, { x, y, size: 9.5, font: f, color: grey });
+    pg.drawLine({ start: { x, y: y - 26 }, end: { x: x + w, y: y - 26 }, thickness: .8, color: rule });
+  };
+  field('Nombre completo', 72, 630, 468);
+  field('Correo electrónico', 72, 584, 468);
+  field('Teléfono', 72, 538, 220);
+  field('Fecha de nacimiento', 320, 538, 220);
+  pg.drawText('Talleres', { x: 72, y: 470, size: 13, font: fb, color: ink });
+  pg.drawText('Marca uno o varios. Plazas limitadas a 12 personas por grupo.', { x: 72, y: 454, size: 9.5, font: f, color: grey });
+  [['Cerámica', 'Martes 18:00 – 20:00'], ['Fotografía digital', 'Miércoles 19:00 – 21:00'], ['Escritura creativa', 'Jueves 18:30 – 20:00'], ['Acuarela', 'Sábado 10:00 – 12:00']]
+    .forEach(([n, h], i) => {
+      const y = 424 - i * 28;
+      pg.drawRectangle({ x: 72, y: y - 3, width: 14, height: 14, borderColor: ink, borderWidth: 1 });
+      pg.drawText(n, { x: 96, y, size: 11.5, font: f, color: ink });
+      pg.drawText(h, { x: 360, y, size: 10.5, font: f, color: grey });
+    });
+  pg.drawRectangle({ x: 72, y: 297, width: 14, height: 14, borderColor: ink, borderWidth: 1 });
+  pg.drawText('Autorizo al centro a usar mis datos solo para gestionar esta inscripción.', { x: 96, y: 300, size: 10, font: f, color: ink });
+  pg.drawLine({ start: { x: 72, y: 200 }, end: { x: 300, y: 200 }, thickness: .8, color: ink });
+  pg.drawLine({ start: { x: 340, y: 200 }, end: { x: 540, y: 200 }, thickness: .8, color: ink });
+  pg.drawText('Firma', { x: 72, y: 186, size: 9.5, font: f, color: grey });
+  pg.drawText('Fecha', { x: 340, y: 186, size: 9.5, font: f, color: grey });
+  pg.drawText('Entrega este formulario en recepción o envíalo a talleres@ejemplo.org', { x: 72, y: 72, size: 9, font: f, color: grey });
+
+  // Real fillable fields, some already filled in
+  const form = doc.getForm();
+  const noBox = { backgroundColor: undefined, borderColor: undefined, borderWidth: 0, font: f };
+  const tf = (name, x, y, w, val) => {
+    const t = form.createTextField(name);
+    t.addToPage(pg, { x, y, width: w, height: 20, ...noBox });
+    t.setFontSize(12);
+    if (val) t.setText(val);
+  };
+  tf('nombre', 72, 605, 468, 'Lucía Fernández Ortiz');
+  tf('correo', 72, 559, 468, 'lucia.fernandez@ejemplo.org');
+  tf('telefono', 72, 513, 220, '');
+  tf('nacimiento', 320, 513, 220, '');
+  tf('fecha', 340, 202, 200, '15/10/2026');
+  const cb = (name, y, on) => {
+    const c = form.createCheckBox(name);
+    c.addToPage(pg, { x: 72, y, width: 14, height: 14, ...noBox });
+    if (on) c.check();
+  };
+  cb('taller_ceramica', 421, true);
+  cb('taller_fotografia', 393, false);
+  cb('taller_escritura', 365, false);
+  cb('taller_acuarela', 337, true);
+  cb('autorizo', 297, false);
+  return doc.save();
+}
+function addSampleAnnots() {
+  const H = 792;
+  const pts = [];
+  for (let i = 0; i <= 70; i++) {
+    const t = i / 70;
+    pts.push([+(84 + t * 150 + 7 * Math.sin(t * 19)).toFixed(1), +(H - 214 - 9 * Math.cos(t * 19) * (1 - t * 0.5) + t * 4).toFixed(1)]);
+  }
+  S.annots.push({ id: nid(), page: 0, type: 'path', points: pts, width: 1.8, color: '#1f4fd1' });
+  renderAll();
+}
+
+document.body.dataset.tool = 'select';
+updateProps();
+makeSample()
+  .then(b => loadPdf(b, 'formulario-ejemplo.pdf', true))
+  .then(ok => { if (ok) addSampleAnnots(); })
+  .catch(err => { console.error(err); $('#docName').textContent = 'Abre un PDF para empezar.'; });
+})();
+</script>
+
+</body>
+</html>
